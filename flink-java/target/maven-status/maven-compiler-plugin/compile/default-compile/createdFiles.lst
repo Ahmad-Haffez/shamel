@@ -1,9 +1,0 @@
-com/shamel/flink/GlobalProtocolAggregator.class
-com/shamel/flink/Subscriber.class
-com/shamel/flink/SubscriberProtocolAggregator.class
-com/shamel/flink/WifiAggregator.class
-com/shamel/flink/WifiPacket.class
-com/shamel/flink/SubscriberEnrichmentFunction.class
-com/shamel/flink/EnrichedPacket.class
-com/shamel/flink/GlobalProtocolStats.class
-com/shamel/flink/SubscriberProtocolStats.class
