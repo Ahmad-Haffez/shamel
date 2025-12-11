@@ -1,0 +1,57 @@
+{
+  "192.168.100.119": {
+    "subscriber": "cPhone",
+    "machineId": "Galaxy-A05",
+    "mac": "52:c2:03:0b:ba:d8"
+  },
+  "192.168.100.171": {
+    "subscriber": "camera1",
+    "machineId": "C220",
+    "mac": "bc:07:1d:ba:07:c9"
+  },
+  "192.168.100.172": {
+    "subscriber": "camera2",
+    "machineId": "C210",
+    "mac": "24:2f:d0:2f:be:89"
+  },
+  "192.168.100.173": {
+    "subscriber": "camera3",
+    "machineId": "C210",
+    "mac": "24:2f:d0:2f:cb:a6"
+  },
+  "192.168.100.41": {
+    "subscriber": "TV1",
+    "machineId": "Samsung",
+    "mac": "a0:d7:f3:bf:93:88"
+  },
+  "192.168.100.170": {
+    "subscriber": "hPhone",
+    "machineId": "HIDDEN",
+    "mac": "d2:3e:bc:6a:49:e7"
+  },
+  "192.168.100.21": {
+    "subscriber": "hLabtop",
+    "machineId": "DESKTOP-E91HQ1S",
+    "mac": "f4:96:34:80:08:72"
+  },
+  "192.168.100.6": {
+    "subscriber": "sniffer",
+    "machineId": "Z",
+    "mac": "82:64:7e:ca:e8:a0"
+  },
+  "192.168.100.2": {
+    "subscriber": "zPhone",
+    "machineId": "Ahmad-s-A15",
+    "mac": "ba:9b:87:5d:f3:7b"
+  },
+  "192.168.100.143": {
+    "subscriber": "zLabtop",
+    "machineId": "z",
+    "mac": "28:16:ad:71:90:3a"
+  },
+  "192.168.100.54": {
+    "subscriber": "zStation",
+    "machineId": "ZHome",
+    "mac": "48:51:b7:de:0b:8e"
+  }
+}

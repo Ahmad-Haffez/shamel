@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flink-sql-job-config
+data:
+  job.sql: |
+    CREATE TABLE aaalogin (
+      subscriberID STRING,
+      publicIP STRING,
+      `timeStamp` STRING,
+      event_timestamp AS TO_TIMESTAMP(`timeStamp`),
+      WATERMARK FOR event_timestamp AS event_timestamp - INTERVAL '{{ .Values.sql.watermarkDelaySeconds }}' SECOND
+    ) WITH (
+      'connector' = 'kafka',
+      'topic' = '{{ .Values.kafka.topics.aaalogin }}',
+      'properties.bootstrap.servers' = '{{ .Values.kafka.bootstrapServers }}',
+      'format' = 'json',
+      'scan.startup.mode' = '{{ .Values.kafka.startupMode }}'
+    );
+
+    CREATE TABLE cgnat (
+      `timeStamp` STRING,
+      privateIP STRING,
+      privatePort INT,
+      publicIP STRING,
+      publicPort INT,
+      protocol STRING,
+      natEvent STRING,
+      destinationIP STRING,
+      destinationPort INT,
+      duration BIGINT,
+      event_timestamp AS TO_TIMESTAMP(`timeStamp`),
+      WATERMARK FOR event_timestamp AS event_timestamp - INTERVAL '{{ .Values.sql.watermarkDelaySeconds }}' SECOND
+    ) WITH (
+      'connector' = 'kafka',
+      'topic' = '{{ .Values.kafka.topics.cgnat }}',
+      'properties.bootstrap.servers' = '{{ .Values.kafka.bootstrapServers }}',
+      'format' = 'json',
+      'scan.startup.mode' = '{{ .Values.kafka.startupMode }}'
+    );
+
+    CREATE TABLE unified_sessions (
+      subscriberID STRING,
+      publicIP STRING,
+      privateIP STRING,
+      privatePort INT,
+      publicPort INT,
+      protocol STRING,
+      natEvent STRING,
+      destinationIP STRING,
+      destinationPort INT,
+      duration BIGINT,
+      loginTime STRING,
+      cgnatTime STRING
+    ) WITH (
+      'connector' = 'opensearch',
+      'hosts' = '{{ .Values.opensearch.scheme }}://{{ .Values.opensearch.host }}:{{ .Values.opensearch.port }}',
+      'index' = '{{ .Values.opensearch.index }}'
+    );
+
+    INSERT INTO unified_sessions
+    SELECT
+      a.subscriberID,
+      a.publicIP,
+      c.privateIP,
+      c.privatePort,
+      c.publicPort,
+      c.protocol,
+      c.natEvent,
+      c.destinationIP,
+      c.destinationPort,
+      c.duration,
+      a.`timeStamp` AS loginTime,
+      c.`timeStamp` AS cgnatTime
+    FROM aaalogin AS a
+    JOIN cgnat AS c
+    ON a.publicIP = c.publicIP
+    AND c.event_timestamp BETWEEN a.event_timestamp - INTERVAL '{{ .Values.sql.joinWindowMinutes }}' MINUTE AND a.event_timestamp + INTERVAL '{{ .Values.sql.joinWindowMinutes }}' MINUTE;
+

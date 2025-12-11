@@ -1,0 +1,27 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  replicas: {{ .Values.nodesPerSite.minio | default 1 }}
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: shamel
+      containers:
+      - name: minio
+        image: minio/minio:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 9000
+        resources:
+          limits:
+            cpu: {{ .Values.resources.minio.cpu }}
+            memory: {{ .Values.resources.minio.memory }}

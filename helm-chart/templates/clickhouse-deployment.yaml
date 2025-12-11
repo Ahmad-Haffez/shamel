@@ -1,0 +1,28 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+spec:
+  replicas: {{.Values.nodesPerSite.clickhouse | default 1}}
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: shamel
+      containers:
+      - name: clickhouse
+        image: clickhouse/clickhouse-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8123
+          - containerPort: 9000
+        resources:
+          limits:
+            cpu: {{ .Values.resources.clickhouse.cpu }}
+            memory: {{ .Values.resources.clickhouse.memory }}

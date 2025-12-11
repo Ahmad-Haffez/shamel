@@ -1,0 +1,51 @@
+controlPlaneNodes: 1
+ingress:
+  enabled: true
+  hosts:
+    keycloak: keycloak.local
+    mlflow: mlflow.local
+    opensearch: opensearch.local
+
+# WiFi Producer Configuration
+wifiProducer:
+  enabled: true
+  kafkaBroker: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  kafkaTopic: "wifi_traffic"
+
+nodesPerSite:
+  clickhouse: 1
+  flink: 1
+  kafka: 1
+  minio: 1
+  opensearch: 1
+resources:
+  clickhouse:
+    cpu: '2'
+    memory: 4Gi
+  control:
+    cpu: '2'
+    memory: 4Gi
+  flink:
+    cpu: '2'
+    memory: 4Gi
+  kafka:
+    cpu: '2'
+    memory: 4Gi
+  minio:
+    cpu: '2'
+    memory: 4Gi
+  opensearch:
+    cpu: '2'
+    memory: 4Gi
+  mlflow:
+    cpu: '2'
+    memory: 4Gi
+  keycloak:
+    cpu: '2'
+    memory: 4Gi
+  
+sites: 1
+storage:
+  clickhouse: 2Gi
+  minio: 2Gi
+  opensearch: 2Gi

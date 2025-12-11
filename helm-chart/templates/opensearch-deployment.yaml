@@ -1,0 +1,36 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch
+spec:
+  replicas: {{ .Values.nodesPerSite.opensearch | default 1 }}
+  selector:
+    matchLabels:
+      app: opensearch
+  template:
+    metadata:
+      labels:
+        app: opensearch
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: shamel
+      containers:
+      - name: opensearch
+        image: opensearchproject/opensearch:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: OPENSEARCH_JAVA_OPTS
+          value: "-Xms512m -Xmx512m"
+        - name: discovery.type
+          value: "single-node"
+        - name: DISABLE_INSTALL_DEMO_CONFIG
+          value: "true"
+        - name: DISABLE_SECURITY_PLUGIN
+          value: "true"
+        ports:
+          - containerPort: 9200
+        resources:
+          limits:
+            cpu: {{ .Values.resources.opensearch.cpu }}
+            memory: {{ .Values.resources.opensearch.memory }}

@@ -1,0 +1,48 @@
+flinkJob:
+  name: flink-job1
+  image:
+    repository: flink-sql-job
+    tag: "1.19"
+    pullPolicy: IfNotPresent
+  
+  flinkVersion: v1_19
+  
+  jobManager:
+    cpu: 2
+    memory: "2048m"
+  
+  taskManager:
+    cpu: 2
+    memory: "2048m"
+    replicas: 3
+  
+  job:
+    jarURI: "local:///opt/flink/usrlib/flink-sql-job.jar"
+    entryClass: "com.example.flink.SqlJobRunner"
+    args:
+      - "/opt/flink/sql/job.sql"
+    parallelism: 6
+    upgradeMode: stateless
+  
+  serviceAccount:
+    name: flink
+
+kafka:
+  bootstrapServers: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  topics:
+    aaalogin: "aaalogin"
+    cgnat: "cgnat"
+  consumerGroup: "flink-job1"
+  startupMode: "earliest-offset"
+
+opensearch:
+  host: "opensearch-svc.default.svc.cluster.local"
+  port: 9200
+  index: "unified_sessions"
+  scheme: "http"
+
+sql:
+  # Time window for joining AAA login and CGNAT events
+  joinWindowMinutes: 5
+  # Watermark delay for handling late events
+  watermarkDelaySeconds: 5

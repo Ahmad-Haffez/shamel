@@ -1,0 +1,27 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+spec:
+  replicas: {{ .Values.nodesPerSite.keycloak | default 1 }}
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: shamel
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8080
+        resources:
+          limits:
+            cpu: {{ .Values.resources.keycloak.cpu }}
+            memory: {{ .Values.resources.keycloak.memory }}

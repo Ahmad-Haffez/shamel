@@ -1,0 +1,15 @@
+FROM flink:1.18
+
+# Install Python 3.11 and PyFlink dependencies
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip python3-venv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install PyFlink and Kafka dependencies
+RUN pip3 install --no-cache-dir \
+    apache-flink==1.18.1 \
+    kafka-python
+
+# Create symlink for python command
+RUN ln -s /usr/bin/python3 /usr/bin/python

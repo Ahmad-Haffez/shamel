@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: wifi-producer
+  labels:
+    app: wifi-producer
+spec:
+  selector:
+    matchLabels:
+      app: wifi-producer
+  template:
+    metadata:
+      labels:
+        app: wifi-producer
+    spec:
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: wifi-sniffer
+      containers:
+      - name: wifi-producer
+        image: nicolaka/netshoot:latest
+        command: ["/bin/bash"]
+        args:
+          - -c
+          - |
+            # Add Kafka broker to hosts file for DNS resolution
+            echo "10.43.172.87 my-cluster-dual-role-0.my-cluster-kafka-brokers.kafka.svc" >> /etc/hosts
+            
+            # Install dependencies
+            apt-get update && apt-get install -y tshark python3-pip python3-venv
+            
+            # Create virtual environment
+            python3 -m venv /opt/venv
+            . /opt/venv/bin/activate
+            
+            # Install kafka-python in venv
+            pip install kafka-python
+            
+            # Copy Python script
+            cp /scripts/wifi_kafka_producer.py /tmp/wifi_kafka_producer.py
+            chmod +x /tmp/wifi_kafka_producer.py
+            
+            # Create WPA decryption keys file for tshark
+            mkdir -p /root/.wireshark
+            echo "wpa-pwd:bdaf7fb0" > /root/.wireshark/wpa_keys
+            
+            # Find WiFi interface
+            WIFI_IFACE=$(ip link show | grep -E 'wl[a-z0-9]+:' | awk -F: '{print $2}' | tr -d ' ' | head -n1)
+            
+            if [ -z "$WIFI_IFACE" ]; then
+              echo "No WiFi interface found. Available interfaces:"
+              ip link show
+              echo "Sleeping indefinitely..."
+              sleep infinity
+            else
+              echo "Found WiFi interface: $WIFI_IFACE"
+              echo "Starting packet capture with WPA decryption and DNS resolution..."
+              echo "Testing tshark first..."
+              tshark -i "$WIFI_IFACE" -c 1 2>&1 || echo "Tshark test failed, continuing anyway..."
+              echo "Starting full capture with Python pipeline..."
+              tshark -i "$WIFI_IFACE" -f "not host 192.168.100.177 and not host 192.168.100.179 and not host 192.168.100.181" -o wlan.enable_decryption:TRUE -T ek -l 2>&1 | /opt/venv/bin/python3 /tmp/wifi_kafka_producer.py
+            fi
+        env:
+        - name: KAFKA_BROKER
+          value: "10.43.172.87:9092"
+        - name: KAFKA_TOPIC
+          value: "wifi_traffic"
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: scripts
+        configMap:
+          name: wifi-producer-script
+          defaultMode: 0755
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists

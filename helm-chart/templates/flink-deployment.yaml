@@ -1,0 +1,43 @@
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: wifi-aggregator
+spec:
+  image: wifi-aggregator:1.0
+  imagePullPolicy: Never
+  flinkVersion: v1_18
+  serviceAccount: flink
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "2"
+    state.backend: filesystem
+    state.checkpoints.dir: file:///flink-data/checkpoints
+    state.savepoints.dir: file:///flink-data/savepoints
+    execution.checkpointing.interval: 60s
+  jobManager:
+    resource:
+      memory: "1024m"
+      cpu: 1
+  taskManager:
+    resource:
+      memory: "1024m"
+      cpu: 1
+    replicas: 1
+  job:
+    jarURI: local:///opt/flink/usrlib/wifi-aggregator-1.0-SNAPSHOT.jar
+    entryClass: com.shamel.flink.WifiAggregator
+    parallelism: 2
+    state: running
+    upgradeMode: savepoint
+  podTemplate:
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: flink-pod-template
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: shamel
+      containers:
+        - name: flink-main-container
+          env:
+            - name: KAFKA_BROKER
+              value: "my-cluster-kafka-bootstrap.kafka.svc:9092"

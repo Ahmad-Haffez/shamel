@@ -1,0 +1,27 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+spec:
+  replicas: {{ .Values.nodesPerSite.mlflow | default 1 }}
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ai-worker
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 5000
+        resources:
+          limits:
+            cpu: {{.Values.resources.mlflow.cpu}}
+            memory: {{ .Values.resources.mlflow.memory }}

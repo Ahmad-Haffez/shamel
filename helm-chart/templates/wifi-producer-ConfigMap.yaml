@@ -1,0 +1,220 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wifi-producer-script
+data:
+  wifi_kafka_producer.py: |
+    #!/usr/bin/env python3 -u
+    """
+    WiFi Traffic Capture Producer
+    Reads tshark output from stdin and sends to Kafka
+    """
+
+    import json
+    import sys
+    import os
+    import socket
+    from datetime import datetime
+    from kafka import KafkaProducer
+
+    # Kafka configuration
+    KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'my-cluster-kafka-bootstrap.kafka.svc:9092')
+    TOPIC = os.getenv('KAFKA_TOPIC', 'wifi_traffic')
+
+    # DNS cache to avoid repeated lookups
+    dns_cache = {}
+
+    def resolve_ip(ip):
+        """Resolve IP to hostname using Python DNS lookup"""
+        if not ip or ip.startswith('192.168.') or ip.startswith('10.') or ip.startswith('172.'):
+            return ip  # Skip private IPs
+        
+        if ip in dns_cache:
+            return dns_cache[ip]
+        
+        try:
+            hostname = socket.gethostbyaddr(ip)[0]
+            dns_cache[ip] = hostname
+            return hostname
+        except (socket.herror, socket.gaierror, socket.timeout):
+            dns_cache[ip] = ip
+            return ip
+
+    def create_producer():
+        """Initialize Kafka producer"""
+        import time
+        max_retries = 5
+        retry_delay = 5
+        
+        for attempt in range(max_retries):
+            try:
+                producer = KafkaProducer(
+                    bootstrap_servers=KAFKA_BROKER,
+                    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                    acks='all',
+                    retries=10,
+                    max_in_flight_requests_per_connection=5,
+                    request_timeout_ms=60000,
+                    api_version_auto_timeout_ms=10000
+                )
+                print(f"✓ Connected to Kafka broker: {KAFKA_BROKER}", file=sys.stderr)
+                return producer
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️ Kafka connection attempt {attempt + 1}/{max_retries} failed: {e}", file=sys.stderr)
+                    print(f"   Retrying in {retry_delay} seconds...", file=sys.stderr)
+                    sys.stderr.flush()
+                    time.sleep(retry_delay)
+                else:
+                    print(f"✗ Failed to connect to Kafka after {max_retries} attempts: {e}", file=sys.stderr)
+                    sys.exit(1)
+
+    def resolve_ip(ip):
+        """Resolve IP to hostname with caching"""
+        if not ip:
+            return ''
+        if ip in dns_cache:
+            return dns_cache[ip]
+        try:
+            hostname = socket.gethostbyaddr(ip)[0]
+            dns_cache[ip] = hostname
+            return hostname
+        except (socket.herror, socket.gaierror, socket.timeout):
+            dns_cache[ip] = ip  # Cache the IP itself if resolution fails
+            return ip
+
+    def parse_tshark_json(line):
+        """Parse tshark EK (Elasticsearch) JSON output line"""
+        try:
+            data = json.loads(line)
+            
+            # Skip index lines (they have "index" key)
+            if 'index' in data:
+                return None
+            
+            # Extract layers from EK format
+            layers = data.get('layers', {})
+            
+            # If no layers, skip
+            if not layers:
+                return None
+            
+            # Build packet record with safe access to EK format
+            frame = layers.get('frame', {})
+            eth = layers.get('eth', {})
+            ip = layers.get('ip', {})
+            tcp = layers.get('tcp', {})
+            udp = layers.get('udp', {})
+            
+            # Skip mDNS and DNS packets
+            protocols = frame.get('frame_frame_protocols', '')
+            execludedprotocols = [
+                'eth:ethertype:ip:udp:mdns',
+                'eth:ethertype:ip:udp:dns',
+                'eth:ethertype:ip:udp:dhcp',
+                'eth:ethertype:ip:icmp',
+
+                'eth:ethertype:ipv6:udp:dhcpv6',
+                'eth:ethertype:ipv6:udp:mdns',
+                'eth:ethertype:ipv6:icmpv6',
+                'eth:ethertype:ipv6:ipv6.hopopts:icmpv6',
+
+                'eth:ethertype:arp'
+            ]
+            if protocols in execludedprotocols:
+                return None
+            
+            # print(f"frame:{json.dumps(frame)}", file=sys.stderr)
+            # print(f"eth:{json.dumps(eth)}", file=sys.stderr)
+            # print(f"ip:{json.dumps(ip)}", file=sys.stderr)
+            # print(f"tcp:{json.dumps(tcp)}", file=sys.stderr)
+            # print(f"udp:{json.dumps(udp)}", file=sys.stderr)
+            
+            # Get IPs and tshark-resolved hostnames (ip_ip_src_host, ip_ip_dst_host)
+            source_ip = ip.get('ip_ip_src', '')
+            dest_ip = ip.get('ip_ip_dst', '')
+            source_hostname = ip.get('ip_ip_src_host', source_ip)  # Tshark provides resolved name
+            dest_hostname = ip.get('ip_ip_dst_host', dest_ip)      # Tshark provides resolved name
+            
+            # If tshark didn't resolve (hostname == IP), try Python DNS lookup
+            if source_hostname == source_ip and source_ip:
+                source_hostname = resolve_ip(source_ip)
+            if dest_hostname == dest_ip and dest_ip:
+                dest_hostname = resolve_ip(dest_ip)
+            
+            packet = {
+                'timestamp': data.get('timestamp', ''),
+                'frameLen': int(frame.get('frame_frame_len', 0) or 0),
+                'protocols': frame.get('frame_frame_protocols', ''),
+                'MACSD': f"{eth.get('eth_eth_src', '')}/{eth.get('eth_eth_dst', '')}",
+                'sourceHost': f"{source_ip}/{source_hostname}",
+                'destHost': f"{dest_ip}/{dest_hostname}",
+                'ipProto': ip.get('ip_ip_proto', ''),
+                'tcpPortSD': f"{tcp.get('tcp_tcp_srcport', '') if tcp else ''}/{tcp.get('tcp_tcp_dstport', '') if tcp else ''}",
+                'udpPortSD': f"{udp.get('udp_udp_srcport', '') if udp else ''}/{udp.get('udp_udp_dstport', '') if udp else ''}",
+            }
+            print(f"✓ Parsed packet: {json.dumps(packet, indent=3  )}", file=sys.stderr)
+            return packet
+        except json.JSONDecodeError:
+            # Skip non-JSON lines (like tshark status messages)
+            return None
+        except Exception as e:
+            print(f"✗ Error parsing packet: {e}", file=sys.stderr)
+            return None
+
+    def main():
+        """Main function"""
+        print("=" * 60, file=sys.stderr)
+        print("WiFi Traffic Kafka Producer", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print(f"Kafka Broker: {KAFKA_BROKER}", file=sys.stderr)
+        print(f"Kafka Topic: {TOPIC}", file=sys.stderr)
+        print("Waiting for tshark input from stdin...", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        sys.stderr.flush()
+        
+        producer = create_producer()
+        packet_count = 0
+        line_count = 0
+        
+        try:
+            for line in sys.stdin:
+                line_count += 1
+                if line_count % 100 == 0:
+                    print(f"📋 Read {line_count} lines from tshark", file=sys.stderr)
+                    sys.stderr.flush()
+                
+                line = line.strip()
+                if not line:
+                    continue
+                
+                packet = parse_tshark_json(line)
+                if packet:
+                    try:
+                        producer.send(TOPIC, value=packet)
+                        packet_count += 1
+                        
+                        if packet_count % 100 == 0:
+                            producer.flush()
+                            print(f"📦 Sent {packet_count} packets to Kafka", file=sys.stderr)
+                            sys.stderr.flush()
+                        elif packet_count % 10 == 0:
+                            print(f"📦 Sent {packet_count} packets to Kafka", file=sys.stderr)
+                            sys.stderr.flush()
+                    except Exception as e:
+                        print(f"✗ Error sending packet: {e}", file=sys.stderr)
+                        sys.stderr.flush()
+        
+        except KeyboardInterrupt:
+            print("\n🛑 Stopping capture...", file=sys.stderr)
+        
+        finally:
+            producer.flush()
+            producer.close()
+            print("=" * 60, file=sys.stderr)
+            print(f"✓ Total packets sent: {packet_count}", file=sys.stderr)
+            print("✓ Kafka producer closed", file=sys.stderr)
+            print("=" * 60, file=sys.stderr)
+
+    if __name__ == '__main__':
+        main()

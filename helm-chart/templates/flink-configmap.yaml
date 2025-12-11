@@ -1,0 +1,250 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flink-job-config
+data:
+  # Subscriber mapping: IP as key for O(1) lookup performance
+  subscribers.json: |
+    {
+      "192.168.100.119": {
+        "subscriber": "cPhone",
+        "machineId": "Galaxy-A05",
+        "mac": "52:c2:03:0b:ba:d8"
+      },
+      "192.168.100.171": {
+        "subscriber": "camera1",
+        "machineId": "C220",
+        "mac": "bc:07:1d:ba:07:c9"
+      },
+      "192.168.100.172": {
+        "subscriber": "camera2",
+        "machineId": "C210",
+        "mac": "24:2f:d0:2f:be:89"
+      },
+      "192.168.100.173": {
+        "subscriber": "camera3",
+        "machineId": "C210",
+        "mac": "24:2f:d0:2f:cb:a6"
+      },
+      "192.168.100.41": {
+        "subscriber": "TV1",
+        "machineId": "Samsung",
+        "mac": "a0:d7:f3:bf:93:88"
+      },
+      "192.168.100.170": {
+        "subscriber": "hPhone",
+        "machineId": "HIDDEN",
+        "mac": "d2:3e:bc:6a:49:e7"
+      },
+      "192.168.100.21": {
+        "subscriber": "hLabtop",
+        "machineId": "DESKTOP-E91HQ1S",
+        "mac": "f4:96:34:80:08:72"
+      },
+      "192.168.100.6": {
+        "subscriber": "sniffer",
+        "machineId": "Z",
+        "mac": "82:64:7e:ca:e8:a0"
+      },
+      "192.168.100.2": {
+        "subscriber": "zPhone",
+        "machineId": "Ahmad-s-A15",
+        "mac": "ba:9b:87:5d:f3:7b"
+      },
+      "192.168.100.143": {
+        "subscriber": "zLabtop",
+        "machineId": "z",
+        "mac": "28:16:ad:71:90:3a"
+      },
+      "192.168.100.54": {
+        "subscriber": "zStation",
+        "machineId": "ZHome",
+        "mac": "48:51:b7:de:0b:8e"
+      }
+    }
+  
+  # Flink job JAR or Python script
+  wifi_aggregator.py: |
+    """
+    Flink WiFi Packet Aggregation Pipeline
+    1. Read from Kafka wifi_traffic topic
+    2. Enrich with subscriber name (source or dest IP lookup)
+    3. Aggregate by subscriber + protocol
+    """
+    from pyflink.datastream import StreamExecutionEnvironment
+    from pyflink.datastream.connectors.kafka import FlinkKafkaConsumer, FlinkKafkaProducer
+    from pyflink.common.serialization import SimpleStringSchema, JsonRowSerializationSchema, JsonRowDeserializationSchema
+    from pyflink.common.typeinfo import Types
+    from pyflink.datastream.functions import MapFunction, KeyedProcessFunction
+    from pyflink.datastream.state import ValueStateDescriptor
+    import json
+    import os
+    
+    # Load subscriber mapping from mounted config file
+    def load_subscribers():
+        """Load subscriber mapping from subscribers.json (IP-keyed dict for O(1) lookup)"""
+        config_path = '/opt/flink/config/subscribers.json'
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"Warning: {config_path} not found, using empty mapping")
+            return {}
+    
+    SUBSCRIBERS = load_subscribers()
+    
+    class EnrichWithSubscriber(MapFunction):
+        """Enrich packet with subscriber info based on source or dest IP (O(1) lookup)"""
+        
+        def map(self, value):
+            packet = json.loads(value)
+            
+            # Direct O(1) hash lookup by IP
+            source_ip = packet.get('sourceIP', '')
+            dest_ip = packet.get('destIP', '')
+            
+            # Check source IP first, then dest IP
+            subscriber_info = SUBSCRIBERS.get(source_ip) or SUBSCRIBERS.get(dest_ip)
+            
+            if subscriber_info:
+                packet['subscriberName'] = subscriber_info.get('subscriber', 'unknown')
+                packet['subscriberMachine'] = subscriber_info.get('machineId', 'unknown')
+                packet['subscriberMAC'] = subscriber_info.get('mac', '')
+                # Determine traffic direction
+                if source_ip in SUBSCRIBERS:
+                    packet['trafficType'] = 'out'
+                else:
+                    packet['trafficType'] = 'in'
+            else:
+                packet['subscriberName'] = 'unknown'
+                packet['subscriberMachine'] = 'unknown'
+                packet['subscriberMAC'] = ''
+                packet['trafficType'] = 'unknown'
+            
+            return json.dumps(packet)
+    
+    class AggregateBySubscriberProtocol(KeyedProcessFunction):
+        """Aggregate packets by subscriber name and protocol"""
+        
+        def __init__(self):
+            self.packet_count_state = None
+            self.total_bytes_state = None
+            
+        def open(self, runtime_context):
+            packet_count_descriptor = ValueStateDescriptor("packet_count", Types.LONG())
+            total_bytes_descriptor = ValueStateDescriptor("total_bytes", Types.LONG())
+            
+            self.packet_count_state = runtime_context.get_state(packet_count_descriptor)
+            self.total_bytes_state = runtime_context.get_state(total_bytes_descriptor)
+        
+        def process_element(self, value, ctx):
+            packet = json.loads(value)
+            
+            # Get current counts
+            current_count = self.packet_count_state.value() or 0
+            current_bytes = self.total_bytes_state.value() or 0
+            
+            # Update aggregates
+            new_count = current_count + 1
+            new_bytes = current_bytes + packet.get('frameLen', 0)
+            
+            self.packet_count_state.update(new_count)
+            self.total_bytes_state.update(new_bytes)
+            
+            # Create aggregated output
+            aggregate = {
+                'subscriberName': packet.get('subscriberName'),
+                'trafficType': packet.get('trafficType'),
+                'protocol': packet.get('protocols', ''),
+                'packetCount': new_count,
+                'totalBytes': new_bytes,
+                'lastSeen': packet.get('captureTime', ''),
+                'lastSourceHostname': packet.get('sourceHostname', ''),
+                'lastDestHostname': packet.get('destHostname', '')
+            }
+            
+            yield json.dumps(aggregate)
+    
+    class AggregateGlobalByProtocol(KeyedProcessFunction):
+        """Aggregate packets globally by protocol only (all subscribers)"""
+        
+        def __init__(self):
+            self.packet_count_state = None
+            self.total_bytes_state = None
+            
+        def open(self, runtime_context):
+            packet_count_descriptor = ValueStateDescriptor("global_packet_count", Types.LONG())
+            total_bytes_descriptor = ValueStateDescriptor("global_total_bytes", Types.LONG())
+            
+            self.packet_count_state = runtime_context.get_state(packet_count_descriptor)
+            self.total_bytes_state = runtime_context.get_state(total_bytes_descriptor)
+        
+        def process_element(self, value, ctx):
+            packet = json.loads(value)
+            
+            # Get current counts
+            current_count = self.packet_count_state.value() or 0
+            current_bytes = self.total_bytes_state.value() or 0
+            
+            # Update aggregates
+            new_count = current_count + 1
+            new_bytes = current_bytes + packet.get('frameLen', 0)
+            
+            self.packet_count_state.update(new_count)
+            self.total_bytes_state.update(new_bytes)
+            
+            # Create aggregated output
+            aggregate = {
+                'aggregationType': 'global',
+                'protocol': packet.get('protocols', ''),
+                'packetCount': new_count,
+                'totalBytes': new_bytes,
+                'lastSeen': packet.get('captureTime', '')
+            }
+            
+            yield json.dumps(aggregate)
+    
+    def main():
+        env = StreamExecutionEnvironment.get_execution_environment()
+        env.set_parallelism(1)
+        
+        # Kafka consumer properties
+        kafka_props = {
+            'bootstrap.servers': os.getenv('KAFKA_BROKER', 'my-cluster-kafka-bootstrap.kafka.svc:9092'),
+            'group.id': 'wifi-aggregator'
+        }
+        
+        # Create Kafka consumer
+        kafka_consumer = FlinkKafkaConsumer(
+            topics='wifi_traffic',
+            deserialization_schema=SimpleStringSchema(),
+            properties=kafka_props
+        )
+        kafka_consumer.set_start_from_earliest()
+        
+        # Read from Kafka
+        stream = env.add_source(kafka_consumer)
+        
+        # Step 1: Enrich with subscriber name
+        enriched_stream = stream.map(EnrichWithSubscriber())
+        
+        # Step 2a: Per-subscriber aggregation by subscriber name + protocol
+        per_subscriber_stream = enriched_stream \
+            .map(lambda x: json.loads(x)) \
+            .key_by(lambda x: f"{x['subscriberName']}:{x['protocols']}") \
+            .process(AggregateBySubscriberProtocol())
+        
+        # Step 2b: Global aggregation by protocol only
+        global_stream = enriched_stream \
+            .map(lambda x: json.loads(x)) \
+            .key_by(lambda x: x['protocols']) \
+            .process(AggregateGlobalByProtocol())
+        
+        # Output both streams
+        per_subscriber_stream.print("PER_SUBSCRIBER")
+        global_stream.print("GLOBAL")
+        
+        env.execute("WiFi Packet Aggregation Pipeline")
+    
+    if __name__ == '__main__':
+        main()

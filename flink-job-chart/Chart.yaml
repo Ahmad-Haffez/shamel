@@ -1,0 +1,6 @@
+apiVersion: v2
+name: flink-job1
+description: Flink streaming job for unified sessions (Kafka to OpenSearch)
+type: application
+version: 1.0.0
+appVersion: "1.19.0"
