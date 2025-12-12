@@ -24,15 +24,27 @@ public class WifiPacket {
     @JsonProperty("destMAC")
     private String destMAC;
     
-    @JsonProperty("protocol")
+    @JsonProperty("protocols")
     private String protocol;
     
-    @JsonProperty("length")
+    @JsonProperty("sourcePort")
+    private String sourcePort;
+    
+    @JsonProperty("destPort")
+    private String destPort;
+    
+    @JsonProperty("frameLen")
     private Integer length;
 
     // Getters and setters
     public String getTimestamp() { return timestamp; }
     public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+    
+
+    public String getSourcePort() { return sourcePort; }
+    public void setSourcePort(String sourcePort) { this.sourcePort = sourcePort; }
+    public String getDestPort() {return destPort;}
+    public void setDestPort(String destPort) {this.destPort = destPort;}
     
     public String getSourceIP() { return sourceIP; }
     public void setSourceIP(String sourceIP) { this.sourceIP = sourceIP; }

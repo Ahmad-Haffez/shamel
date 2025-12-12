@@ -144,14 +144,19 @@ data:
             
             packet = {
                 'timestamp': data.get('timestamp', ''),
+                'sourceIP': source_ip,
+                'destIP': dest_ip,
+                'sourceHostname': source_hostname,
+                'destHostname': dest_hostname,
+
                 'frameLen': int(frame.get('frame_frame_len', 0) or 0),
                 'protocols': frame.get('frame_frame_protocols', ''),
-                'MACSD': f"{eth.get('eth_eth_src', '')}/{eth.get('eth_eth_dst', '')}",
-                'sourceHost': f"{source_ip}/{source_hostname}",
-                'destHost': f"{dest_ip}/{dest_hostname}",
+                'sourceMAC': f"{eth.get('eth_eth_src', '')}",
+                'destMAC': f"{eth.get('eth_eth_dst', '')}",
+                
                 'ipProto': ip.get('ip_ip_proto', ''),
-                'tcpPortSD': f"{tcp.get('tcp_tcp_srcport', '') if tcp else ''}/{tcp.get('tcp_tcp_dstport', '') if tcp else ''}",
-                'udpPortSD': f"{udp.get('udp_udp_srcport', '') if udp else ''}/{udp.get('udp_udp_dstport', '') if udp else ''}",
+                'sourcePort': f"{tcp.get('tcp_tcp_srcport', '') if tcp else udp.get('udp_udp_srcport', '') if udp else ''}",
+                'destPort'  : f"{tcp.get('tcp_tcp_dstport', '') if tcp else udp.get('udp_udp_dstport', '') if udp else ''}",
             }
             print(f"✓ Parsed packet: {json.dumps(packet, indent=3  )}", file=sys.stderr)
             return packet

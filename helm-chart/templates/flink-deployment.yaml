@@ -10,8 +10,8 @@ spec:
   flinkConfiguration:
     taskmanager.numberOfTaskSlots: "2"
     state.backend: filesystem
-    state.checkpoints.dir: file:///flink-data/checkpoints
-    state.savepoints.dir: file:///flink-data/savepoints
+    state.checkpoints.dir: file:///tmp/flink-checkpoints
+    state.savepoints.dir: file:///tmp/flink-savepoints
     execution.checkpointing.interval: 60s
   jobManager:
     resource:
