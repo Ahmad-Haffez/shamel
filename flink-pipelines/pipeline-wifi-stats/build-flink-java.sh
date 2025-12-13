@@ -4,7 +4,7 @@
 set -e
 
 echo "Building Flink Java project..."
-cd ~/POCchart/flink-java
+cd ~/POCchart/flink-pipelines/pipeline-wifi-stats
 
 # Build with Maven
 echo "Running Maven package..."

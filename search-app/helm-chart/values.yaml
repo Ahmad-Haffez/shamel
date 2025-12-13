@@ -1,6 +1,14 @@
-apiVersion: v2
-name: wifi-stats-web-ui
-description: WiFi Stats Web UI - React Frontend and Node.js Backend API
-type: application
-version: 1.0.0
-appVersion: "1.0"
+# Keycloak Configuration
+keycloak:
+  realm: "wifi-analytics"
+  clientId: "wifi-stats-frontend"
+  
+# Backend Service Configuration
+backend:
+  ingress:
+    host: "wifi-stats-api.example.com"
+    
+# Frontend Application Configuration  
+frontend:
+  ingress:
+    host: "wifi-stats.example.com"
