@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-wifi-stats-backend-ingress
+  annotations:
+    # OAuth2 authentication with Keycloak
+    nginx.ingress.kubernetes.io/auth-url: "http://{{ .Release.Name }}-keycloak-svc.default.svc.cluster.local:8080/realms/{{ .Values.keycloak.realm }}/protocol/openid-connect/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://{{ .Values.backend.ingress.host }}/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Access-Token"
+    
+    # TLS configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # CORS headers
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://{{ .Values.frontend.ingress.host }}"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - {{ .Values.backend.ingress.host }}
+    secretName: wifi-stats-backend-tls
+  rules:
+  - host: {{ .Values.backend.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Release.Name }}-wifi-stats-backend-svc
+            port:
+              number: 3001

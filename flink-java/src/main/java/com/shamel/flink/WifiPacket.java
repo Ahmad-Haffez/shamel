@@ -1,7 +1,9 @@
 package com.shamel.flink;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class WifiPacket {
     @JsonProperty("timestamp")
     private String timestamp;
@@ -32,6 +34,9 @@ public class WifiPacket {
     
     @JsonProperty("destPort")
     private String destPort;
+    
+    @JsonProperty("ipProto")
+    private String ipProto;
     
     @JsonProperty("frameLen")
     private Integer length;
@@ -66,6 +71,9 @@ public class WifiPacket {
     
     public String getProtocol() { return protocol; }
     public void setProtocol(String protocol) { this.protocol = protocol; }
+    
+    public String getIpProto() { return ipProto; }
+    public void setIpProto(String ipProto) { this.ipProto = ipProto; }
     
     public Integer getLength() { return length; }
     public void setLength(Integer length) { this.length = length; }

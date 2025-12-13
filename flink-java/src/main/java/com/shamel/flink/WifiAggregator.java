@@ -1,6 +1,10 @@
 package com.shamel.flink;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeHint;
@@ -11,6 +15,7 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +27,12 @@ public class WifiAggregator {
         // Get Kafka broker from environment or use default
         String kafkaBroker = System.getenv().getOrDefault("KAFKA_BROKER", "my-cluster-kafka-bootstrap.kafka.svc:9092");
         
+        // Get ClickHouse connection from environment
+        String clickHouseHost = System.getenv().getOrDefault("CLICKHOUSE_HOST", "clickhouse.default.svc");
+        int clickHousePort = Integer.parseInt(System.getenv().getOrDefault("CLICKHOUSE_PORT", "8123"));
+        
         LOG.info("Starting WiFi Aggregator with Kafka broker: {}", kafkaBroker);
+        LOG.info("ClickHouse: {}:{}", clickHouseHost, clickHousePort);
         
         // Set up streaming environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -58,14 +68,35 @@ public class WifiAggregator {
                 .map(new SubscriberEnrichmentFunction())
                 .name("Subscriber Enrichment");
         
-        // Filter out unknown subscribers for aggregation
-        DataStream<EnrichedPacket> knownSubscribers = enrichedPackets
-                .filter(packet -> !"unknown".equals(packet.getSubscriberName()));
+
+        
+        //     Skip mDNS and DNS packets
+            //protocols = frame.get('frame_frame_protocols', '')
+            List<String> excludedProtocols = Arrays.asList(
+                "eth:ethertype:ip:udp:mdns",
+                "eth:ethertype:ip:udp:dns",
+                "eth:ethertype:ip:udp:dhcp",
+                "eth:ethertype:ip:icmp",
+
+                "eth:ethertype:ipv6:udp:dhcpv6",
+                "eth:ethertype:ipv6:udp:mdns",
+                "eth:ethertype:ipv6:icmpv6",
+                "eth:ethertype:ipv6:ipv6.hopopts:icmpv6",
+
+                "eth:ethertype:arp"
+            );
+            
+            
+            
+        // Filter out unknown subscribers and excluded protocols
+        DataStream<EnrichedPacket> remainingTraffic = enrichedPackets
+                .filter(packet -> !"unknown".equals(packet.getSubscriberName()))
+                .filter(packet -> !excludedProtocols.contains(packet.getProtocol()));
         
         // Aggregate by subscriber and protocol (60-second tumbling window)
-        DataStream<SubscriberProtocolStats> subscriberStats = knownSubscribers
+        DataStream<SubscriberProtocolStats> subscriberStats = remainingTraffic
                 .keyBy(
-                    packet -> new Tuple2<>(packet.getSubscriberName(), packet.getProtocol()),
+                    packet -> new Tuple2<>(packet.getSubscriberName(), packet.getSecondPartyName()),
                     TypeInformation.of(new TypeHint<Tuple2<String, String>>() {})
                 )
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
@@ -73,17 +104,32 @@ public class WifiAggregator {
                 .name("Per-Subscriber Aggregation");
         
         // Aggregate globally by protocol (60-second tumbling window)
-        DataStream<GlobalProtocolStats> globalStats = enrichedPackets
-                .keyBy(EnrichedPacket::getProtocol)
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
+        DataStream<GlobalProtocolStats> globalStats = remainingTraffic
+                .keyBy(packet->packet.getSecondPartyName())
+                .window(SlidingProcessingTimeWindows.of(Time.seconds(600), Time.seconds(30)))
                 .aggregate(new GlobalProtocolAggregator())
                 .name("Global Protocol Aggregation");
         
-        // Print results (in production, write to Kafka topics)
-        subscriberStats.print("PER_SUBSCRIBER");
-        globalStats.print("GLOBAL");
+        // Write results to ClickHouse
+        subscriberStats.addSink(new ClickHouseSubscriberSink(clickHouseHost, clickHousePort))
+                .name("ClickHouse Subscriber Sink");
+        globalStats.addSink(new ClickHouseGlobalSink(clickHouseHost, clickHousePort))
+                .name("ClickHouse Global Sink");
+        
+        // Anomaly Detection Pipeline
+        DataStream<TrafficAnomaly> anomalies = subscriberStats
+                .keyBy(stats -> stats.getSubscriberName() + "-" + stats.getSecondParty())
+                .process(new AnomalyDetector())
+                .name("Anomaly Detection");
+        
+        // Write anomalies to ClickHouse
+        anomalies.addSink(new ClickHouseAnomalySink(clickHouseHost, clickHousePort))
+                .name("ClickHouse Anomaly Sink");
+        
+        // Also print anomalies for monitoring
+        anomalies.print("ANOMALY_DETECTED");
         
         // Execute
-        env.execute("WiFi Traffic Aggregator");
+        env.execute("WiFi Traffic Aggregator with Anomaly Detection");
     }
 }

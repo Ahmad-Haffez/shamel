@@ -1,23 +1,23 @@
 package com.shamel.flink;
 
 public class GlobalProtocolStats {
-    private String protocol;
+    private String secondParty;
     private long packetCount;
     private long totalBytes;
     private String lastSeen;
 
     public GlobalProtocolStats() {}
 
-    public GlobalProtocolStats(String protocol, long packetCount, long totalBytes, String lastSeen) {
-        this.protocol = protocol;
+    public GlobalProtocolStats(String secondParty, long packetCount, long totalBytes, String lastSeen) {
+        this.secondParty = secondParty;
         this.packetCount = packetCount;
         this.totalBytes = totalBytes;
         this.lastSeen = lastSeen;
     }
 
     // Getters and setters
-    public String getProtocol() { return protocol; }
-    public void setProtocol(String protocol) { this.protocol = protocol; }
+    public String getSecondParty() { return secondParty; }
+    public void setSecondParty(String secondParty) { this.secondParty = secondParty; }
     
     public long getPacketCount() { return packetCount; }
     public void setPacketCount(long packetCount) { this.packetCount = packetCount; }
@@ -30,7 +30,7 @@ public class GlobalProtocolStats {
 
     @Override
     public String toString() {
-        return String.format("GlobalProtocolStats{protocol='%s', packets=%d, bytes=%d, lastSeen='%s'}",
-                protocol, packetCount, totalBytes, lastSeen);
+        return String.format("{secondParty='%s', packets=%d, bytes=%d, lastSeen='%s'}",
+                secondParty, packetCount, totalBytes, lastSeen);
     }
 }

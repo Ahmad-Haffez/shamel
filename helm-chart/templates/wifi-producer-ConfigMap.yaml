@@ -106,30 +106,6 @@ data:
             tcp = layers.get('tcp', {})
             udp = layers.get('udp', {})
             
-            # Skip mDNS and DNS packets
-            protocols = frame.get('frame_frame_protocols', '')
-            execludedprotocols = [
-                'eth:ethertype:ip:udp:mdns',
-                'eth:ethertype:ip:udp:dns',
-                'eth:ethertype:ip:udp:dhcp',
-                'eth:ethertype:ip:icmp',
-
-                'eth:ethertype:ipv6:udp:dhcpv6',
-                'eth:ethertype:ipv6:udp:mdns',
-                'eth:ethertype:ipv6:icmpv6',
-                'eth:ethertype:ipv6:ipv6.hopopts:icmpv6',
-
-                'eth:ethertype:arp'
-            ]
-            if protocols in execludedprotocols:
-                return None
-            
-            # print(f"frame:{json.dumps(frame)}", file=sys.stderr)
-            # print(f"eth:{json.dumps(eth)}", file=sys.stderr)
-            # print(f"ip:{json.dumps(ip)}", file=sys.stderr)
-            # print(f"tcp:{json.dumps(tcp)}", file=sys.stderr)
-            # print(f"udp:{json.dumps(udp)}", file=sys.stderr)
-            
             # Get IPs and tshark-resolved hostnames (ip_ip_src_host, ip_ip_dst_host)
             source_ip = ip.get('ip_ip_src', '')
             dest_ip = ip.get('ip_ip_dst', '')
@@ -151,14 +127,14 @@ data:
 
                 'frameLen': int(frame.get('frame_frame_len', 0) or 0),
                 'protocols': frame.get('frame_frame_protocols', ''),
-                'sourceMAC': f"{eth.get('eth_eth_src', '')}",
-                'destMAC': f"{eth.get('eth_eth_dst', '')}",
+                'sourceMAC': eth.get('eth_eth_src', ''),
+                'destMAC': eth.get('eth_eth_dst', ''),
                 
                 'ipProto': ip.get('ip_ip_proto', ''),
-                'sourcePort': f"{tcp.get('tcp_tcp_srcport', '') if tcp else udp.get('udp_udp_srcport', '') if udp else ''}",
-                'destPort'  : f"{tcp.get('tcp_tcp_dstport', '') if tcp else udp.get('udp_udp_dstport', '') if udp else ''}",
+                'sourcePort': tcp.get('tcp_tcp_srcport', '') if tcp else udp.get('udp_udp_srcport', '') if udp else '',
+                'destPort'  : tcp.get('tcp_tcp_dstport', '') if tcp else udp.get('udp_udp_dstport', '') if udp else '',
             }
-            print(f"✓ Parsed packet: {json.dumps(packet, indent=3  )}", file=sys.stderr)
+            # print(f"Parsed packet: {json.dumps(packet, indent=3  )}", file=sys.stderr)
             return packet
         except json.JSONDecodeError:
             # Skip non-JSON lines (like tshark status messages)

@@ -1,0 +1,14 @@
+# Keycloak Configuration
+keycloak:
+  realm: "wifi-analytics"
+  clientId: "wifi-stats-frontend"
+  
+# Backend Service Configuration
+backend:
+  ingress:
+    host: "wifi-stats-api.example.com"
+    
+# Frontend Application Configuration  
+frontend:
+  ingress:
+    host: "wifi-stats.example.com"

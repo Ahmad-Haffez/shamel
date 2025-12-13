@@ -53,19 +53,31 @@ public class SubscriberEnrichmentFunction extends RichMapFunction<WifiPacket, En
             enriched.setSubscriberName(sourceSubscriber.getSubscriber());
             enriched.setSubscriberMachine(sourceSubscriber.getMachineId());
             enriched.setSubscriberMAC(sourceSubscriber.getMac());
-            enriched.setTrafficType("out");
+            if (destSubscriber != null)
+            {
+                enriched.setTrafficType("internal");
+                enriched.setSecondPartyName(destSubscriber.getSubscriber());
+            } 
+            else
+            {
+                enriched.setTrafficType("out");
+                enriched.setSecondPartyName(packet.getDestHostname());
+            }
+            
         } else if (destSubscriber != null) {
             // Incoming traffic to subscriber
             enriched.setSubscriberName(destSubscriber.getSubscriber());
             enriched.setSubscriberMachine(destSubscriber.getMachineId());
             enriched.setSubscriberMAC(destSubscriber.getMac());
             enriched.setTrafficType("in");
+            enriched.setSecondPartyName(packet.getSourceHostname());
         } else {
             // No subscriber match
             enriched.setSubscriberName("unknown");
             enriched.setSubscriberMachine("unknown");
             enriched.setSubscriberMAC("unknown");
             enriched.setTrafficType("unknown");
+            enriched.setSecondPartyName("unknown");
         }
 
         return enriched;

@@ -40,6 +40,14 @@
             <version>2.15.3</version>
         </dependency>
 
+        <!-- ClickHouse JDBC -->
+        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>0.6.0</version>
+            <classifier>all</classifier>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

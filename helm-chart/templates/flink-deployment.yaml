@@ -27,7 +27,7 @@ spec:
     entryClass: com.shamel.flink.WifiAggregator
     parallelism: 2
     state: running
-    upgradeMode: savepoint
+    upgradeMode: stateless
   podTemplate:
     apiVersion: v1
     kind: Pod
@@ -41,3 +41,7 @@ spec:
           env:
             - name: KAFKA_BROKER
               value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+            - name: CLICKHOUSE_HOST
+              value: "clickhouse-svc.default.svc"
+            - name: CLICKHOUSE_PORT
+              value: "8123"

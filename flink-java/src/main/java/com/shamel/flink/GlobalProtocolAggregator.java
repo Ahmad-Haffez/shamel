@@ -11,8 +11,8 @@ public class GlobalProtocolAggregator implements AggregateFunction<EnrichedPacke
 
     @Override
     public GlobalProtocolStats add(EnrichedPacket packet, GlobalProtocolStats accumulator) {
-        if (accumulator.getProtocol().isEmpty()) {
-            accumulator.setProtocol(packet.getProtocol());
+        if (accumulator.getSecondParty().isEmpty()) {
+            accumulator.setSecondParty(packet.getSecondPartyName());
         }
         
         accumulator.setPacketCount(accumulator.getPacketCount() + 1);

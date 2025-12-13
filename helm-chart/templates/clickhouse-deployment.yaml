@@ -19,6 +19,9 @@ spec:
       - name: clickhouse
         image: clickhouse/clickhouse-server:latest
         imagePullPolicy: IfNotPresent
+        env:
+          - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+            value: "1"
         ports:
           - containerPort: 8123
           - containerPort: 9000

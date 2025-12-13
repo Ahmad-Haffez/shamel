@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wifi-stats-backend-config
+  namespace: default
+data:
+  CLICKHOUSE_HOST: "clickhouse-svc.default.svc"
+  CLICKHOUSE_PORT: "8123"
+  CLICKHOUSE_USER: "flink"
+  KEYCLOAK_URL: "http://keycloak-svc.default.svc:8080"
+  KEYCLOAK_REALM: "master"
+  KEYCLOAK_CLIENT_ID: "wifi-stats-app"
+  FRONTEND_URL: "http://wifi-stats.local"
+  PORT: "3001"

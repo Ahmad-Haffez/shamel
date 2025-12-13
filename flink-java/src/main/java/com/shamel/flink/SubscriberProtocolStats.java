@@ -1,17 +1,24 @@
 package com.shamel.flink;
 
+import java.util.Set;
+import java.util.HashSet;
+
 public class SubscriberProtocolStats {
     private String subscriberName;
-    private String protocol;
+    private String SecondParty;
+    // private Set<String> protocols;
     private long packetCount;
     private long totalBytes;
     private String lastSeen;
 
-    public SubscriberProtocolStats() {}
+    public SubscriberProtocolStats() {
+        // this.protocols = new HashSet<>();
+    }
 
-    public SubscriberProtocolStats(String subscriberName, String protocol, long packetCount, long totalBytes, String lastSeen) {
+    public SubscriberProtocolStats(String subscriberName,long packetCount, long totalBytes, String lastSeen) {
         this.subscriberName = subscriberName;
-        this.protocol = protocol;
+        this.SecondParty = "";
+        // this.protocols = new HashSet<>();
         this.packetCount = packetCount;
         this.totalBytes = totalBytes;
         this.lastSeen = lastSeen;
@@ -21,8 +28,11 @@ public class SubscriberProtocolStats {
     public String getSubscriberName() { return subscriberName; }
     public void setSubscriberName(String subscriberName) { this.subscriberName = subscriberName; }
     
-    public String getProtocol() { return protocol; }
-    public void setProtocol(String protocol) { this.protocol = protocol; }
+    public String getSecondParty() { return SecondParty; }
+    public void setSecondParty(String SecondParty) { this.SecondParty = SecondParty; }
+    
+    // public String getProtocol() { return String.join(", ",protocols); }
+    // public void setProtocol(String protocol) { this.protocols.add(protocol); }
     
     public long getPacketCount() { return packetCount; }
     public void setPacketCount(long packetCount) { this.packetCount = packetCount; }
@@ -35,7 +45,7 @@ public class SubscriberProtocolStats {
 
     @Override
     public String toString() {
-        return String.format("SubscriberProtocolStats{subscriber='%s', protocol='%s', packets=%d, bytes=%d, lastSeen='%s'}",
-                subscriberName, protocol, packetCount, totalBytes, lastSeen);
+        return String.format("{subscriber='%s', SP='%s', bytes=%d}",
+                subscriberName, SecondParty,  totalBytes);
     }
 }

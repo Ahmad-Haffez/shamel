@@ -15,6 +15,7 @@ public class EnrichedPacket {
     
     // Enriched fields
     private String subscriberName;
+    private String secondPartyName;
     private String subscriberMachine;
     private String subscriberMAC;
     private String trafficType; // "in" or "out"
@@ -49,6 +50,9 @@ public class EnrichedPacket {
     
     public String getSubscriberName() { return subscriberName; }
     public void setSubscriberName(String subscriberName) { this.subscriberName = subscriberName; }
+    
+    public String getSecondPartyName() { return secondPartyName; }
+    public void setSecondPartyName(String secondPartyName) { this.secondPartyName = secondPartyName; }
     
     public String getSubscriberMachine() { return subscriberMachine; }
     public void setSubscriberMachine(String subscriberMachine) { this.subscriberMachine = subscriberMachine; }
