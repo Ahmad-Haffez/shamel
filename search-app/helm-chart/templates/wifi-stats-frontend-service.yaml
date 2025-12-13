@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wifi-stats-frontend-svc
+  namespace: default
+spec:
+  selector:
+    app: wifi-stats-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP

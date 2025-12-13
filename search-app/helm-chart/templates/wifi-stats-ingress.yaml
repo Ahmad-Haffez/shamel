@@ -4,10 +4,10 @@ metadata:
   name: wifi-stats-ingress
   namespace: default
   annotations:
-    # Keycloak OAuth authentication
-    nginx.ingress.kubernetes.io/auth-url: "http://keycloak-svc.default.svc.cluster.local:8080/realms/master/protocol/openid-connect/auth"
-    nginx.ingress.kubernetes.io/auth-signin: "http://keycloak.local/realms/master/protocol/openid-connect/auth?client_id=wifi-stats-app&redirect_uri=$scheme://$http_host$request_uri&response_type=code&scope=openid"
-    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Access-Token"
+    # Keycloak OAuth authentication (commented out for initial testing)
+    # nginx.ingress.kubernetes.io/auth-url: "http://keycloak-svc.default.svc.cluster.local:8080/realms/master/protocol/openid-connect/auth"
+    # nginx.ingress.kubernetes.io/auth-signin: "http://keycloak.local/realms/master/protocol/openid-connect/auth?client_id=wifi-stats-app&redirect_uri=$scheme://$http_host$request_uri&response_type=code&scope=openid"
+    # nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Access-Token"
     
     # Session affinity
     nginx.ingress.kubernetes.io/affinity: "cookie"
@@ -28,22 +28,3 @@ spec:
             name: wifi-stats-frontend-svc
             port:
               number: 80
-  default.conf: |
-    server {
-        listen 80;
-        server_name _;
-        
-        # Serve React static files
-        location / {
-            root /usr/share/nginx/html;
-            try_files $uri $uri/ /index.html;
-            expires 1h;
-            add_header Cache-Control "public, immutable";
-        }
-        
-        # Proxy API requests to backend
-        location /api/ {
-            proxy_pass http://wifi-stats-backend-svc:3001;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection 'upgrade';
