@@ -7,9 +7,9 @@ echo "Building React application..."
 
 # Build React app
 echo "Running npm build..."
-npm --prefix ./frontend run build
+npm run build
 
-if [ ! -d "./frontend/build" ]; then
+if [ ! -d "./build" ]; then
     echo "❌ React build failed - build directory not found"
     exit 1
 fi
@@ -19,8 +19,8 @@ echo "✅ React build successful"
 # Copy build files to frontend directory
 echo "Copying build files to wifi-stats-frontend..."
 
-rm -rf ./build
-cp -r frontend/build ./build
+# rm -rf ../build
+# cp -r ./build ../build
 
 # Get version from user or use default
 VERSION=${1:-1.0}

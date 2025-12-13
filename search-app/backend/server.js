@@ -14,6 +14,9 @@ const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || '';
 
 const CLICKHOUSE_URL = `http://${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}`;
 
+// AI Agent configuration
+const AI_AGENT_URL = process.env.AI_AGENT_URL || 'http://wifi-stats-ai-agent-svc.default.svc.cluster.local:8080';
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -221,6 +224,56 @@ app.get('/api/anomaly-summary', async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Natural language query endpoint
+app.post('/api/nl-query', async (req, res) => {
+  try {
+    const { query } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Query parameter is required' });
+    }
+
+    console.log(`Natural language query: ${query}`);
+
+    // Step 1: Call AI agent to convert NL to SQL
+    const agentResponse = await axios.post(`${AI_AGENT_URL}/convert-nl-to-sql`, {
+      query: query
+    });
+
+    const { sql, explanation, confidence, warnings } = agentResponse.data;
+    console.log(`Generated SQL: ${sql}`);
+
+    // Step 2: Execute the SQL against ClickHouse
+    const result = await queryClickHouse(sql);
+
+    // Step 3: Return results with metadata
+    res.json({
+      query: query,
+      sql: sql,
+      explanation: explanation,
+      confidence: confidence,
+      warnings: warnings || [],
+      data: result.data,
+      rows: result.rows,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Natural language query error:', error.message);
+    
+    // Provide more detailed error information
+    if (error.response) {
+      // AI agent or ClickHouse returned an error
+      res.status(error.response.status || 500).json({
+        error: error.response.data?.detail || error.response.data?.error || error.message,
+        source: error.response.config?.url?.includes('ai-agent') ? 'ai-agent' : 'clickhouse'
+      });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 

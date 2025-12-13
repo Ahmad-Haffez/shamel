@@ -4,6 +4,8 @@ import StatsSearchForm from './components/StatsSearchForm';
 import StatsTable from './components/StatsTable';
 import AnomalyTable from './components/AnomalyTable';
 import SummaryDashboard from './components/SummaryDashboard';
+import NaturalLanguageSearch from './components/NaturalLanguageSearch';
+import QueryResultDisplay from './components/QueryResultDisplay';
 import {
   getSubscriberStats,
   getGlobalStats,
@@ -14,15 +16,27 @@ import {
 } from './services/clickhouseService';
 import { SearchParams, DashboardData, SubscriberStats, GlobalStats, TrafficAnomaly } from './types';
 
-type ViewType = 'subscriber' | 'global' | 'anomalies' | 'dashboard';
+type ViewType = 'ai-search' | 'subscriber' | 'global' | 'anomalies' | 'dashboard';
+
+interface NLQueryResult {
+  query: string;
+  sql: string;
+  explanation: string;
+  confidence: number;
+  warnings: string[];
+  data: any[];
+  rows: number;
+  timestamp: string;
+}
 
 function App() {
-  const [view, setView] = useState<ViewType>('dashboard');
+  const [view, setView] = useState<ViewType>('ai-search');
   const [results, setResults] = useState<SubscriberStats[] | GlobalStats[] | TrafficAnomaly[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalRows, setTotalRows] = useState(0);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [nlQueryResult, setNlQueryResult] = useState<NLQueryResult | null>(null);
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -88,6 +102,12 @@ function App() {
 
       <nav className="view-selector">
         <button
+          className={view === 'ai-search' ? 'active' : ''}
+          onClick={() => setView('ai-search')}
+        >
+          🤖 AI Search
+        </button>
+        <button
           className={view === 'dashboard' ? 'active' : ''}
           onClick={() => setView('dashboard')}
         >
@@ -114,7 +134,20 @@ function App() {
       </nav>
 
       <main className="App-main">
-        {view === 'dashboard' ? (
+        {view === 'ai-search' ? (
+          <>
+            <NaturalLanguageSearch 
+              onResults={(result) => setNlQueryResult(result)}
+            />
+            
+            {nlQueryResult && (
+              <QueryResultDisplay 
+                result={nlQueryResult}
+                onClear={() => setNlQueryResult(null)}
+              />
+            )}
+          </>
+        ) : view === 'dashboard' ? (
           loading ? (
             <div className="loading-spinner">
               <div className="spinner"></div>
