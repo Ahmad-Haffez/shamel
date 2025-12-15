@@ -1,3 +1,4 @@
+# Use local base image (not from registry)
 FROM audio-processor-base:1.0
 
 WORKDIR /app

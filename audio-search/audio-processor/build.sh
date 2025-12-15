@@ -7,10 +7,7 @@ echo "Building audio-processor image..."
 VERSION=${1:-1.0}
 
 echo "Building version $VERSION..."
-sudo nerdctl --namespace k8s.io build --no-cache -t audio-processor:$VERSION .
-
-echo "Saving and importing to k3s..."
-sudo nerdctl --namespace k8s.io save audio-processor:$VERSION | sudo k3s ctr images import -
+sudo nerdctl --namespace k8s.io build --pull=never -t audio-processor:$VERSION .
 
 echo ""
 echo "✅ Image audio-processor:$VERSION built and imported successfully!"
