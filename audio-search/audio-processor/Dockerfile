@@ -2,6 +2,10 @@ FROM audio-processor-base:1.0
 
 WORKDIR /app
 
+# Pre-download models in this layer (only rebuild if requirements change)
+RUN python -c "import whisper; whisper.load_model('tiny')" && \
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 # Copy application code (only layer that changes frequently)
 COPY main.py .
 

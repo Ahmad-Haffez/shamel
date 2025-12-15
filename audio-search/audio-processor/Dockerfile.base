@@ -17,11 +17,5 @@ RUN pip install --no-cache-dir torch==2.1.0 torchaudio==2.1.0 --index-url https:
 # Install all Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download Whisper tiny model (saves ~40MB download at runtime)
-RUN python -c "import whisper; whisper.load_model('tiny')"
-
-# Pre-download sentence transformer model (saves ~90MB download at runtime)
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
-
 # Expose port
 EXPOSE 8090
