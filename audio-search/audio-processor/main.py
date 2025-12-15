@@ -34,7 +34,7 @@ AUDIO_INDEX_NAME = os.getenv("AUDIO_INDEX_NAME", "audio_multimodal_search")
 
 # Initialize models
 logger.info("Loading Whisper model for audio transcription...")
-whisper_model = whisper.load_model("base")  # Options: tiny, base, small, medium, large
+whisper_model = whisper.load_model("tiny")  # Options: tiny, base, small, medium, large
 
 logger.info("Loading sentence transformer for text embeddings...")
 text_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # 384 dimensions

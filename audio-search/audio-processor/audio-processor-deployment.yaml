@@ -35,12 +35,12 @@ spec:
           value: "0"
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "1Gi"
+            cpu: "500m"
             nvidia.com/gpu: "1"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "2Gi"
+            cpu: "1000m"
             nvidia.com/gpu: "1"
         livenessProbe:
           httpGet:
