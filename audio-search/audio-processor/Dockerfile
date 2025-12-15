@@ -1,5 +1,5 @@
-# Use local base image (not from registry)
-FROM audio-processor-base:1.0
+# Use local base image by tag (buildkit should find it locally)
+FROM localhost/audio-processor-base:1.0
 
 WORKDIR /app
 
