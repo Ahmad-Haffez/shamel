@@ -24,17 +24,29 @@ spec:
       containers:
       - image: nvcr.io/nvidia/k8s-device-plugin:v0.14.3
         name: nvidia-device-plugin-ctr
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/host-lib/x86_64-linux-gnu:/usr/local/nvidia/lib64:/usr/local/nvidia/lib"
         args:
           - "--pass-device-specs=true"
           - "--fail-on-init-error=false"
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: ["ALL"]
+          privileged: true
         volumeMounts:
         - name: device-plugin
           mountPath: /var/lib/kubelet/device-plugins
+        - name: host-lib
+          mountPath: /host-lib
+          readOnly: true
+        - name: dev
+          mountPath: /dev
       volumes:
       - name: device-plugin
         hostPath:
           path: /var/lib/kubelet/device-plugins
+      - name: host-lib
+        hostPath:
+          path: /lib
+      - name: dev
+        hostPath:
+          path: /dev

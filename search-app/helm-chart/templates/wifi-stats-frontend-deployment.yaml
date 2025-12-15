@@ -17,7 +17,7 @@ spec:
         kubernetes.io/hostname: shamel
       containers:
       - name: nginx
-        image: wifi-stats-frontend:1.0
+        image: wifi-stats-frontend:1.1
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80

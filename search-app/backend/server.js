@@ -2,9 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const axios = require('axios');
+const multer = require('multer');
+const FormData = require('form-data');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ClickHouse configuration
 const CLICKHOUSE_HOST = process.env.CLICKHOUSE_HOST || 'clickhouse-svc.default.svc.cluster.local';
@@ -16,6 +21,12 @@ const CLICKHOUSE_URL = `http://${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}`;
 
 // AI Agent configuration
 const AI_AGENT_URL = process.env.AI_AGENT_URL || 'http://wifi-stats-ai-agent-svc.default.svc.cluster.local:8080';
+
+// Audio Processor configuration
+const AUDIO_PROCESSOR_URL = process.env.AUDIO_PROCESSOR_URL || 'http://audio-processor-svc.default.svc.cluster.local:8090';
+
+// Audio Processor configuration
+const AUDIO_PROCESSOR_URL = process.env.AUDIO_PROCESSOR_URL || 'http://audio-processor-svc.default.svc.cluster.local:8090';
 
 // Middleware
 app.use(cors());
@@ -274,6 +285,123 @@ app.post('/api/nl-query', async (req, res) => {
     } else {
       res.status(500).json({ error: error.message });
     }
+  }
+});
+
+// Audio Search Endpoints - Proxy to audio-processor service
+
+// Upload audio file
+app.post('/api/audio/upload-audio', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, req.file.originalname);
+
+    const response = await axios.post(`${AUDIO_PROCESSOR_URL}/upload-audio`, formData, {
+      headers: formData.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Audio upload error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search by text
+app.post('/api/audio/search-by-text', upload.none(), async (req, res) => {
+  try {
+    const formData = new FormData();
+    formData.append('query', req.body.query || '');
+    formData.append('k', req.body.k || '10');
+
+    const response = await axios.post(`${AUDIO_PROCESSOR_URL}/search-by-text`, formData, {
+      headers: formData.getHeaders()
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Text search error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search by audio
+app.post('/api/audio/search-by-audio', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, req.file.originalname);
+    formData.append('k', req.body.k || '10');
+
+    const response = await axios.post(`${AUDIO_PROCESSOR_URL}/search-by-audio`, formData, {
+      headers: formData.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Audio search error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Hybrid search
+app.post('/api/audio/hybrid-search', upload.single('audio_file'), async (req, res) => {
+  try {
+    const formData = new FormData();
+    
+    if (req.body.text_query) {
+      formData.append('text_query', req.body.text_query);
+    }
+    if (req.file) {
+      formData.append('audio_file', req.file.buffer, req.file.originalname);
+    }
+    formData.append('k', req.body.k || '10');
+    formData.append('text_weight', req.body.text_weight || '0.5');
+    formData.append('audio_weight', req.body.audio_weight || '0.5');
+
+    const response = await axios.post(`${AUDIO_PROCESSOR_URL}/hybrid-search`, formData, {
+      headers: formData.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Hybrid search error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List audio files
+app.get('/api/audio/list-audio', async (req, res) => {
+  try {
+    const response = await axios.get(`${AUDIO_PROCESSOR_URL}/list-audio`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('List audio error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Audio processor health check
+app.get('/api/audio/health', async (req, res) => {
+  try {
+    const response = await axios.get(`${AUDIO_PROCESSOR_URL}/health`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Audio processor health check failed:', error.message);
+    res.status(500).json({ error: error.message, service: 'audio-processor' });
   }
 });
 

@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama3-vllm
+  labels:
+    app: llama3-vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama3-vllm
+  template:
+    metadata:
+      labels:
+        app: llama3-vllm
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        kubernetes.io/hostname: ai-worker
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:latest
+        env:
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: "expandable_segments:True"
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: ""  # Add your HF token if using gated models
+        command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+        - --model
+        - Qwen/Qwen2.5-1.5B-Instruct
+        - --dtype
+        - float16
+        - --max-model-len
+        - "2048"
+        - --gpu-memory-utilization
+        - "0.80"
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          limits:
+            memory: "12Gi"
+          requests:
+            memory: "4Gi"
+        volumeMounts:
+        - name: cache
+          mountPath: /root/.cache/huggingface
+      volumes:
+      - name: cache
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama3-service
+  labels:
+    app: llama3-vllm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: llama3-vllm

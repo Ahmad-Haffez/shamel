@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cuda-test
+  namespace: default
+spec:
+  restartPolicy: OnFailure
+  runtimeClassName: nvidia
+  nodeSelector:
+    kubernetes.io/hostname: ai-worker
+  containers:
+  - name: cuda-test
+    image: nvidia/cuda:12.0.0-base-ubuntu22.04
+    command: ["nvidia-smi"]

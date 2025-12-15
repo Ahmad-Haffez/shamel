@@ -439,3 +439,254 @@
     align-items: flex-start;
   }
 }
+
+/* Natural Language Search Styles */
+.nl-search-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.nl-search-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.nl-search-header h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.nl-search-header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.nl-search-input-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.nl-search-input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 1rem;
+  transition: border-color 0.3s;
+}
+
+.nl-search-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.nl-search-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.nl-search-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nl-search-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.nl-search-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.nl-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.nl-examples-label {
+  font-weight: 600;
+  color: #666;
+  margin-right: 0.5rem;
+}
+
+.nl-example-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background: white;
+  color: #667eea;
+  border: 1px solid #667eea;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nl-example-button:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.nl-example-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nl-error {
+  background: #fee;
+  border: 2px solid #fcc;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.nl-error .icon {
+  flex-shrink: 0;
+  color: #c33;
+  margin-top: 0.2rem;
+}
+
+.nl-error strong {
+  color: #c33;
+}
+
+.nl-result {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.nl-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}
+
+.nl-result-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.nl-toggle-sql {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #667eea;
+  color: #667eea;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nl-toggle-sql:hover {
+  background: #667eea;
+  color: white;
+}
+
+.nl-explanation {
+  padding: 1rem 1.5rem;
+  background: #f0f4ff;
+  border-left: 4px solid #667eea;
+  margin: 0;
+  color: #555;
+}
+
+.nl-sql-display {
+  padding: 1rem 1.5rem;
+  background: #2d2d2d;
+  color: #f8f8f2;
+  overflow-x: auto;
+}
+
+.nl-sql-display pre {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.nl-results-table {
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.nl-results-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.nl-results-table th,
+.nl-results-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.nl-results-table th {
+  background: #f9f9f9;
+  font-weight: 600;
+  color: #555;
+  position: sticky;
+  top: 0;
+}
+
+.nl-results-table tr:hover {
+  background: #f9f9f9;
+}
+
+.nl-no-results {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}

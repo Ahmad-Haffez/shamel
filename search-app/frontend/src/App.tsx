@@ -6,6 +6,7 @@ import AnomalyTable from './components/AnomalyTable';
 import SummaryDashboard from './components/SummaryDashboard';
 import NaturalLanguageSearch from './components/NaturalLanguageSearch';
 import QueryResultDisplay from './components/QueryResultDisplay';
+import AudioSearch from './components/AudioSearch';
 import {
   getSubscriberStats,
   getGlobalStats,
@@ -16,7 +17,7 @@ import {
 } from './services/clickhouseService';
 import { SearchParams, DashboardData, SubscriberStats, GlobalStats, TrafficAnomaly } from './types';
 
-type ViewType = 'ai-search' | 'subscriber' | 'global' | 'anomalies' | 'dashboard';
+type ViewType = 'ai-search' | 'audio-search' | 'subscriber' | 'global' | 'anomalies' | 'dashboard';
 
 interface NLQueryResult {
   query: string;
@@ -108,6 +109,12 @@ function App() {
           🤖 AI Search
         </button>
         <button
+          className={view === 'audio-search' ? 'active' : ''}
+          onClick={() => setView('audio-search')}
+        >
+          🎵 Audio Search
+        </button>
+        <button
           className={view === 'dashboard' ? 'active' : ''}
           onClick={() => setView('dashboard')}
         >
@@ -147,6 +154,8 @@ function App() {
               />
             )}
           </>
+        ) : view === 'audio-search' ? (
+          <AudioSearch />
         ) : view === 'dashboard' ? (
           loading ? (
             <div className="loading-spinner">
