@@ -1,5 +1,5 @@
-# Use local base image with fake registry prefix to avoid Docker Hub lookup
-FROM local.registry/audio-processor-base:1.0
+# Use local base image by ID (temporary - use local.registry/audio-processor-base:1.0 after rebuild)
+FROM da1d4b553ea5
 
 WORKDIR /app
 
