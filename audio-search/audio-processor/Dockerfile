@@ -1,5 +1,5 @@
-# Use local base image by tag (buildkit should find it locally)
-FROM audio-processor-base:1.0
+# Use local base image with fake registry prefix to avoid Docker Hub lookup
+FROM local.registry/audio-processor-base:1.0
 
 WORKDIR /app
 
