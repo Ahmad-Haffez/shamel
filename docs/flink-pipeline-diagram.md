@@ -5,177 +5,79 @@ Real-time WiFi traffic analytics pipeline using Apache Flink for stream processi
 
 ## Pipeline Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              DATA INGESTION LAYER                                │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                        │
-                                        ▼
-                        ┌───────────────────────────┐
-                        │   WiFi Producer (CronJob) │
-                        │                           │
-                        │  • Captures network       │
-                        │    packets with tshark    │
-                        │  • Extracts metadata:     │
-                        │    - MAC addresses        │
-                        │    - IP addresses         │
-                        │    - Protocols            │
-                        │    - Frame length         │
-                        │    - Ports               │
-                        └───────────┬───────────────┘
-                                    │
-                                    ▼
-                        ┌───────────────────────────┐
-                        │   Kafka Topic             │
-                        │   (wifi_traffic)          │
-                        │                           │
-                        │  • Topic: wifi_traffic    │
-                        │  • Partitions: 1          │
-                        │  • JSON messages          │
-                        └───────────┬───────────────┘
-                                    │
-┌───────────────────────────────────┴───────────────────────────────────────────┐
-│                         STREAM PROCESSING LAYER (FLINK)                        │
-└────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-                        ┌───────────────────────────┐
-                        │   Kafka Source            │
-                        │   (KafkaSource)           │
-                        │                           │
-                        │  • Consumer Group:        │
-                        │    wifi-aggregator-group  │
-                        │  • Starting Offset: 0     │
-                        │  • Parallelism: 2         │
-                        └───────────┬───────────────┘
-                                    │
-                                    ▼
-                        ┌───────────────────────────┐
-                        │   Parse & Map             │
-                        │                           │
-                        │  • Parse JSON             │
-                        │  • Extract fields         │
-                        │  • Create WifiPacket      │
-                        └───────────┬───────────────┘
-                                    │
-                                    ▼
-                        ┌───────────────────────────┐
-                        │   Filter Invalid          │
-                        │                           │
-                        │  • sourceMAC != null      │
-                        │  • destMAC != null        │
-                        │  • frameLen > 0           │
-                        └───────────┬───────────────┘
-                                    │
-                    ┌───────────────┴────────────────────┐
-                    │                                     │
-                    ▼                                     ▼
-    ┌───────────────────────────┐         ┌──────────────────────────────┐
-    │ Subscriber Enrichment     │         │  Global Aggregation          │
-    │                           │         │                              │
-    │ • Add subscriber lookup   │         │  • Key by: destMAC          │
-    │ • Key by: sourceMAC +     │         │  • Window: 1 minute tumble  │
-    │           destMAC          │         │  • Aggregate:               │
-    │ • Window: 1 minute tumble │         │    - count packets          │
-    │ • Aggregate:              │         │    - sum bytes              │
-    │   - count packets         │         │                              │
-    │   - sum bytes             │         └──────────┬───────────────────┘
-    │   - track connections     │                    │
-    └──────────┬────────────────┘                    │
-               │                                     │
-               ▼                                     │
-    ┌───────────────────────────┐                   │
-    │ Filter Valid Subscribers  │                   │
-    │                           │                   │
-    │ • bytes > 0               │                   │
-    └──────────┬────────────────┘                   │
-               │                                     │
-               ▼                                     │
-    ┌───────────────────────────┐                   │
-    │ Anomaly Detection         │                   │
-    │                           │                   │
-    │ • Calculate z-score       │                   │
-    │ • Detect:                 │                   │
-    │   - HIGH_TRAFFIC          │                   │
-    │   - UNUSUAL_PATTERN       │                   │
-    │ • Severity levels:        │                   │
-    │   - CRITICAL (z > 3.0)    │                   │
-    │   - HIGH (z > 2.0)        │                   │
-    │   - MEDIUM (z > 1.0)      │                   │
-    │   - LOW (z > 0.5)         │                   │
-    └──────────┬────────────────┘                   │
-               │                                     │
-               ▼                                     │
-    ┌───────────────────────────┐                   │
-    │ Filter Anomalies          │                   │
-    │                           │                   │
-    │ • anomaly_score > 0.5     │                   │
-    └──────────┬────────────────┘                   │
-               │                                     │
-┌──────────────┴──────────────────────────────┬────┴──────────────┐
-│                                              │                    │
-▼                                              ▼                    ▼
-┌──────────────────────────┐   ┌─────────────────────────┐   ┌────────────────────┐
-│ ClickHouse Sink          │   │ ClickHouse Sink         │   │ ClickHouse Sink    │
-│ (Subscriber Stats)       │   │ (Traffic Anomalies)     │   │ (Global Stats)     │
-│                          │   │                         │   │                    │
-│ Table: subscriber_stats  │   │ Table: traffic_anomalies│   │ Table: global_stats│
-│                          │   │                         │   │                    │
-│ Fields:                  │   │ Fields:                 │   │ Fields:            │
-│ • timestamp              │   │ • timestamp             │   │ • timestamp        │
-│ • subscriber (MAC)       │   │ • detection_time        │   │ • second_party     │
-│ • second_party (MAC)     │   │ • subscriber            │   │ • packets          │
-│ • bytes                  │   │ • second_party          │   │ • bytes            │
-│ • last_seen              │   │ • anomaly_type          │   │ • last_seen        │
-│                          │   │ • severity              │   │                    │
-│                          │   │ • anomaly_score         │   │                    │
-│                          │   │ • current_value         │   │                    │
-│                          │   │ • baseline_value        │   │                    │
-│                          │   │ • description           │   │                    │
-└──────────┬───────────────┘   └──────────┬──────────────┘   └─────────┬──────────┘
-           │                              │                             │
-┌──────────┴──────────────────────────────┴─────────────────────────────┴──────────┐
-│                            ANALYTICS & STORAGE LAYER                             │
-│                                                                                   │
-│                          ┌──────────────────────────┐                            │
-│                          │      ClickHouse          │                            │
-│                          │                          │                            │
-│                          │  • Column-oriented DB    │                            │
-│                          │  • Real-time analytics   │                            │
-│                          │  • SQL queries           │                            │
-│                          │  • Aggregations          │                            │
-│                          └──────────┬───────────────┘                            │
-│                                     │                                             │
-└─────────────────────────────────────┼─────────────────────────────────────────────┘
-                                      │
-┌─────────────────────────────────────┴─────────────────────────────────────────────┐
-│                            APPLICATION LAYER                                       │
-└────────────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                  │
-                    ▼                 ▼                  ▼
-        ┌──────────────────┐  ┌─────────────┐  ┌──────────────────┐
-        │  WiFi Stats      │  │ AI Agent    │  │ Audio Search     │
-        │  Backend API     │  │ (vLLM)      │  │ Service          │
-        │                  │  │             │  │                  │
-        │ • REST endpoints │  │ • NL-to-SQL │  │ • Multimodal     │
-        │ • Query CH       │  │ • Qwen2.5   │  │ • Whisper STT    │
-        │ • Aggregations   │  │   1.5B      │  │ • Embeddings     │
-        └────────┬─────────┘  └──────┬──────┘  └────────┬─────────┘
-                 │                   │                    │
-                 └───────────────────┴────────────────────┘
-                                     │
-                                     ▼
-                        ┌────────────────────────────┐
-                        │   React Frontend           │
-                        │                            │
-                        │  • Dashboard               │
-                        │  • NL Search               │
-                        │  • Audio Search            │
-                        │  • Analytics Charts        │
-                        │  • Anomaly Alerts          │
-                        └────────────────────────────┘
+```mermaid
+graph TB
+    subgraph INGESTION["DATA INGESTION LAYER"]
+        Producer["WiFi Producer (CronJob)<br/>• Captures packets with tshark<br/>• Extracts: MAC, IP, protocols<br/>• Frame length, ports"]
+        Kafka["Kafka Topic (wifi_traffic)<br/>• Partitions: 1<br/>• JSON messages"]
+        Producer --> Kafka
+    end
+
+    subgraph FLINK["STREAM PROCESSING LAYER (Apache Flink)"]
+        Source["Kafka Source<br/>• Group: wifi-aggregator-group<br/>• Parallelism: 2"]
+        Parse["Parse & Map<br/>• Parse JSON<br/>• Extract fields<br/>• Create WifiPacket"]
+        Filter["Filter Invalid<br/>• sourceMAC != null<br/>• destMAC != null<br/>• frameLen > 0"]
+        
+        Kafka --> Source
+        Source --> Parse
+        Parse --> Filter
+        
+        subgraph Branch1["Subscriber Analytics Branch"]
+            SubEnrich["Subscriber Enrichment<br/>• Key: sourceMAC + destMAC<br/>• Window: 1-min tumble<br/>• Aggregate packets & bytes"]
+            SubFilter["Filter Valid<br/>• bytes > 0"]
+            Anomaly["Anomaly Detection<br/>• Calculate z-score<br/>• HIGH_TRAFFIC detection<br/>• Severity: CRITICAL/HIGH/MEDIUM/LOW"]
+            AnoFilter["Filter Anomalies<br/>• score > 0.5"]
+            
+            Filter --> SubEnrich
+            SubEnrich --> SubFilter
+            SubFilter --> Anomaly
+            Anomaly --> AnoFilter
+        end
+        
+        subgraph Branch2["Global Analytics Branch"]
+            GlobalAgg["Global Aggregation<br/>• Key: destMAC<br/>• Window: 1-min tumble<br/>• Count packets & sum bytes"]
+            
+            Filter --> GlobalAgg
+        end
+    end
+
+    subgraph STORAGE["ANALYTICS & STORAGE LAYER"]
+        SubSink["ClickHouse: subscriber_stats<br/>• timestamp, subscriber<br/>• second_party, bytes<br/>• last_seen"]
+        AnoSink["ClickHouse: traffic_anomalies<br/>• timestamp, detection_time<br/>• anomaly_type, severity<br/>• anomaly_score, values"]
+        GlobalSink["ClickHouse: global_stats<br/>• timestamp, second_party<br/>• packets, bytes<br/>• last_seen"]
+        CH[("ClickHouse Database<br/>• Column-oriented<br/>• Real-time analytics<br/>• SQL queries")]
+        
+        SubFilter --> SubSink
+        AnoFilter --> AnoSink
+        GlobalAgg --> GlobalSink
+        
+        SubSink --> CH
+        AnoSink --> CH
+        GlobalSink --> CH
+    end
+
+    subgraph APP["APPLICATION LAYER"]
+        Backend["WiFi Stats Backend API<br/>• REST endpoints<br/>• Query ClickHouse<br/>• Aggregations"]
+        AI["AI Agent (vLLM)<br/>• NL-to-SQL<br/>• Qwen2.5-1.5B"]
+        Audio["Audio Search Service<br/>• Multimodal search<br/>• Whisper STT<br/>• Embeddings"]
+        Frontend["React Frontend<br/>• Dashboard<br/>• NL Search<br/>• Audio Search<br/>• Analytics Charts"]
+        
+        CH --> Backend
+        CH --> AI
+        Backend --> Frontend
+        AI --> Frontend
+        Audio --> Frontend
+    end
+
+    classDef ingestion fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef processing fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef app fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    
+    class Producer,Kafka ingestion
+    class Source,Parse,Filter,SubEnrich,SubFilter,Anomaly,AnoFilter,GlobalAgg processing
+    class SubSink,AnoSink,GlobalSink,CH storage
+    class Backend,AI,Audio,Frontend app
 ```
 
 ## Data Flow Details
