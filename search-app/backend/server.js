@@ -25,9 +25,6 @@ const AI_AGENT_URL = process.env.AI_AGENT_URL || 'http://wifi-stats-ai-agent-svc
 // Audio Processor configuration
 const AUDIO_PROCESSOR_URL = process.env.AUDIO_PROCESSOR_URL || 'http://audio-processor-svc.default.svc.cluster.local:8090';
 
-// Audio Processor configuration
-const AUDIO_PROCESSOR_URL = process.env.AUDIO_PROCESSOR_URL || 'http://audio-processor-svc.default.svc.cluster.local:8090';
-
 // Middleware
 app.use(cors());
 app.use(express.json());
