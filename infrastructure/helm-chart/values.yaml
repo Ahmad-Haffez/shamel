@@ -20,8 +20,8 @@ nodesPerSite:
   opensearch: 1
 resources:
   clickhouse:
-    cpu: '2'
-    memory: 4Gi
+    cpu: '1'
+    memory: 2Gi
   control:
     cpu: '2'
     memory: 4Gi
@@ -32,17 +32,17 @@ resources:
     cpu: '2'
     memory: 4Gi
   minio:
-    cpu: '2'
-    memory: 4Gi
+    cpu: '1'
+    memory: 1Gi
   opensearch:
-    cpu: '2'
-    memory: 4Gi
+    cpu: '1'
+    memory: 1Gi
   mlflow:
     cpu: '2'
     memory: 4Gi
   keycloak:
-    cpu: '2'
-    memory: 4Gi
+    cpu: '1'
+    memory: 1Gi
   
 sites: 1
 storage:
