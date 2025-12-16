@@ -35,7 +35,7 @@ spec:
       name: flink-pod-template
     spec:
       nodeSelector:
-        kubernetes.io/hostname: shamel
+        kubernetes.io/hostname: ai-worker
       containers:
         - name: flink-main-container
           env:

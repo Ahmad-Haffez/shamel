@@ -14,7 +14,7 @@ spec:
         app: minio
     spec:
       nodeSelector:
-        kubernetes.io/hostname: shamel
+        kubernetes.io/hostname: ai-worker
       containers:
       - name: minio
         image: minio/minio:latest

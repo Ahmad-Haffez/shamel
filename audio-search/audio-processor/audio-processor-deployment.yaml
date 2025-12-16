@@ -15,7 +15,7 @@ spec:
         app: audio-processor
     spec:
       nodeSelector:
-        kubernetes.io/hostname: shamel
+        kubernetes.io/hostname: ai-worker
       containers:
       - name: audio-processor
         image: audio-processor:1.0

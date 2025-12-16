@@ -14,7 +14,7 @@ spec:
         app: wifi-stats-frontend
     spec:
       nodeSelector:
-        kubernetes.io/hostname: shamel
+        kubernetes.io/hostname: ai-worker
       containers:
       - name: nginx
         image: wifi-stats-frontend:1.1
