@@ -42,7 +42,6 @@ const StatsTable: React.FC<StatsTableProps> = ({ results, totalRows, view }) => 
                 </>
               )}
               <th>Bytes</th>
-              <th>Last Seen</th>
             </tr>
           </thead>
           <tbody>
@@ -56,7 +55,6 @@ const StatsTable: React.FC<StatsTableProps> = ({ results, totalRows, view }) => 
                   </>
                 )}
                 <td className="numeric">{formatBytes(row.bytes)}</td>
-                <td className="timestamp">{new Date(row.timestamp).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

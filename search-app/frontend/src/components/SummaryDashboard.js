@@ -34,10 +34,6 @@ function SummaryDashboard({ data }) {
                 <span className="stat-label">Destinations:</span>
                 <span className="stat-value">{sub.unique_destinations}</span>
               </div>
-              <div className="stat-row">
-                <span className="stat-label">Last Activity:</span>
-                <span className="stat-value small">{formatTimestamp(sub.last_activity)}</span>
-              </div>
             </div>
           ))}
         </div>
@@ -52,7 +48,6 @@ function SummaryDashboard({ data }) {
                 <th>Destination</th>
                 <th>Total Traffic</th>
                 <th>Unique Subscribers</th>
-                <th>Last Seen</th>
               </tr>
             </thead>
             <tbody>
@@ -61,7 +56,6 @@ function SummaryDashboard({ data }) {
                   <td>{dest.second_party}</td>
                   <td>{formatBytes(dest.total_bytes)}</td>
                   <td>{dest.unique_subscribers}</td>
-                  <td>{formatTimestamp(dest.last_seen)}</td>
                 </tr>
               ))}
             </tbody>

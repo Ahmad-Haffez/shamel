@@ -28,7 +28,6 @@ function StatsTable({ results, totalRows, view }) {
                   <th>Subscriber</th>
                   <th>Second Party</th>
                   <th>Bytes</th>
-                  <th>Last Seen</th>
                 </>
               ) : (
                 <>
@@ -36,7 +35,6 @@ function StatsTable({ results, totalRows, view }) {
                   <th>Second Party</th>
                   <th>Packets</th>
                   <th>Bytes</th>
-                  <th>Last Seen</th>
                 </>
               )}
             </tr>
@@ -50,7 +48,6 @@ function StatsTable({ results, totalRows, view }) {
                     <td><strong>{row.subscriber}</strong></td>
                     <td>{row.second_party}</td>
                     <td>{formatBytes(row.bytes)}</td>
-                    <td>{formatTimestamp(row.last_seen)}</td>
                   </>
                 ) : (
                   <>
@@ -58,7 +55,6 @@ function StatsTable({ results, totalRows, view }) {
                     <td>{row.second_party}</td>
                     <td>{row.packets.toLocaleString()}</td>
                     <td>{formatBytes(row.bytes)}</td>
-                    <td>{formatTimestamp(row.last_seen)}</td>
                   </>
                 )}
               </tr>
