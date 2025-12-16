@@ -15,8 +15,7 @@ spec:
         app: audio-processor
     spec:
       nodeSelector:
-        kubernetes.io/hostname: ai-worker
-      runtimeClassName: nvidia
+        kubernetes.io/hostname: shamel
       containers:
       - name: audio-processor
         image: audio-processor:1.0
@@ -31,17 +30,13 @@ spec:
           value: "9200"
         - name: AUDIO_INDEX_NAME
           value: "audio_multimodal_search"
-        - name: CUDA_VISIBLE_DEVICES
-          value: "0"
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
-            nvidia.com/gpu: "1"
-          limits:
             memory: "2Gi"
             cpu: "1000m"
-            nvidia.com/gpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
         livenessProbe:
           httpGet:
             path: /health
