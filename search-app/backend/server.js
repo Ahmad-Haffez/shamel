@@ -169,7 +169,8 @@ app.get('/api/subscriber-summary', async (req, res) => {
       SELECT 
         subscriber,
         sum(bytes) as total_bytes,
-        count(DISTINCT second_party) as unique_connections
+        count() as connection_count,
+        count(DISTINCT second_party) as unique_destinations
       FROM subscriber_stats
       WHERE timestamp >= now() - INTERVAL ${parseInt(hours)} HOUR
       GROUP BY subscriber
