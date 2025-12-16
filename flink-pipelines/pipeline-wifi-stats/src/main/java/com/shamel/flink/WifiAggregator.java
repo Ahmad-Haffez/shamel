@@ -90,7 +90,7 @@ public class WifiAggregator {
             
         // Filter out unknown subscribers and excluded protocols
         DataStream<EnrichedPacket> remainingTraffic = enrichedPackets
-                .filter(packet -> !"unknown".equals(packet.getSubscriberName()))
+                // .filter(packet -> !"unknown".equals(packet.getSubscriberName()))
                 .filter(packet -> !excludedProtocols.contains(packet.getProtocol()));
         
         // Aggregate by subscriber and protocol (60-second tumbling window)

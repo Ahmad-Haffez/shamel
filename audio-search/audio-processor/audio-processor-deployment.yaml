@@ -18,7 +18,7 @@ spec:
         kubernetes.io/hostname: shamel
       containers:
       - name: audio-processor
-        image: audio-processor:1.0
+        image: docker.io/library/audio-processor:1.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8090
