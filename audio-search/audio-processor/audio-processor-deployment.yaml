@@ -19,8 +19,8 @@ spec:
       runtimeClassName: nvidia
       containers:
       - name: audio-processor
-        image: local.registry/audio-processor:1.0
-        imagePullPolicy: IfNotPresent
+        image: audio-processor:1.0
+        imagePullPolicy: Never
         ports:
         - containerPort: 8090
           name: http
